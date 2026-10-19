@@ -1,3 +1,4 @@
+import { AuthBoundary, Account, LiveWorkspace } from "../auth/AuthBoundary";
 import { useState } from "react";
 import {
   Link,
@@ -76,6 +77,13 @@ function DeferredPage({
   );
 }
 export function App() {
+  return (
+    <AuthBoundary>
+      <AppContent />
+    </AuthBoundary>
+  );
+}
+function AppContent() {
   const [open, setOpen] = useState(false),
     location = useLocation();
   const current =
@@ -145,12 +153,16 @@ export function App() {
               <Badge className="border-slate-300 bg-slate-50 text-slate-600">
                 Local demo
               </Badge>
-              <div className="hidden border-l border-slate-200 pl-4 text-right sm:block">
-                <p className="text-xs font-semibold">Demo workspace</p>
-                <p className="text-xs text-slate-500">
-                  No authenticated session
-                </p>
-              </div>
+              {mock ? (
+                <div className="hidden border-l border-slate-200 pl-4 text-right sm:block">
+                  <p className="text-xs font-semibold">Demo workspace</p>
+                  <p className="text-xs text-slate-500">
+                    No authenticated session
+                  </p>
+                </div>
+              ) : (
+                <Account />
+              )}
             </div>
           </header>
           <main
@@ -173,14 +185,17 @@ export function App() {
                 </strong>
                 <span className="mt-0.5 block text-xs leading-5">
                   {mock
-                    ? "You are exploring sample records. Changes are not saved, and sign-in is not connected."
-                    : "Sample data is off. Sign-in is not available yet."}
+                    ? "You are exploring sample records. Changes are not saved. This preview has no staff session."
+                    : "Real staff session · Synthetic accounts only. Customer records are not connected yet."}
                 </span>
               </p>
             </div>
             <Routes>
               <Route path="/" element={<Navigate replace to="/customers" />} />
-              <Route path="/customers" element={<CustomersPage />} />
+              <Route
+                path="/customers"
+                element={mock ? <CustomersPage /> : <LiveWorkspace />}
+              />
               <Route
                 path="/assessments"
                 element={
@@ -205,10 +220,10 @@ export function App() {
                   <>
                     <h1>Credit Risk Assessment Platform</h1>
                     <p className="my-4 text-slate-600">
-                      Sign-in is not available yet. No account is active in this
-                      demo.
+                      This preview has no staff session. Start the app in API
+                      mode to sign in.
                     </p>
-                    <Button disabled>Sign in — coming soon</Button>
+                    <Button disabled>Preview has no sign-in</Button>
                   </>
                 }
               />

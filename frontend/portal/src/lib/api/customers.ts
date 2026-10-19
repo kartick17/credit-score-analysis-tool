@@ -1,3 +1,4 @@
+import { apiFetch } from "../../auth/session";
 export interface Customer {
   id: string;
   displayName: string;
@@ -40,10 +41,7 @@ export async function getCustomers(
   });
   if (import.meta.env.VITE_MOCK_MODE === "true")
     params.set("scenario", scenario);
-  const response = await fetch(
-    new URL(`/api/v1/customers?${params}`, window.location.origin),
-    { signal },
-  );
+  const response = await apiFetch(`/api/v1/customers?${params}`, { signal });
   if (!response.ok) throw new ApiError(response.status);
   return response.json();
 }

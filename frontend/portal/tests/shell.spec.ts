@@ -78,25 +78,21 @@ test("search, empty, error, retry, forbidden and pagination work", async ({
   ).toBeVisible();
 });
 
-test("production API failure never falls back to synthetic records", async ({
+test("API mode requires sign-in and never shows sample records", async ({
   page,
 }) => {
-  await page.route("**/api/v1/customers?**", (route) =>
-    route.fulfill({
-      status: 503,
-      contentType: "application/json",
-      body: '{"title":"Unavailable"}',
-    }),
-  );
+  await page.route("**/realms/credit-risk/**", (route) => route.abort());
   await page.goto("http://127.0.0.1:5174/customers");
-  await expect(page.getByText("API mode")).toBeVisible();
-  await expect(page.getByRole("alert")).toContainText(
-    "Customers could not be loaded",
-  );
+  await expect(
+    page.getByRole("heading", { name: "Credit Risk Assessment Platform" }),
+  ).toBeVisible();
   await expect(
     page.getByText("Sample Customer 001", { exact: true }),
   ).toHaveCount(0);
   await expect(page.getByLabel("Preview states")).toHaveCount(0);
+  await expect(page.getByRole("alert")).toContainText(
+    "Sign-in could not finish",
+  );
   expect(
     await page.evaluate(
       async () => (await navigator.serviceWorker.getRegistrations()).length,
