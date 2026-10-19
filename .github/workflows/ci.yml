@@ -1,0 +1,51 @@
+name: Foundation checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Build all services and test real PostgreSQL
+        run: ./mvnw -B clean verify
+      - name: Create throwaway local database credentials
+        run: python3 scripts/init-local-env.py
+      - name: Start isolated databases
+        run: ./scripts/db.sh up -d --wait
+      - name: Check all database boundaries
+        run: python3 scripts/check-db-isolation.py
+      - name: Stop CI databases
+        if: always()
+        run: ./scripts/db.sh down
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/portal
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.17.1'
+          cache: npm
+          cache-dependency-path: frontend/portal/package-lock.json
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-failure-evidence
+          path: frontend/portal/test-results/

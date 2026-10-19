@@ -1,0 +1,24 @@
+name: credit-risk-day01
+services:
+  postgres:
+    image: postgres:17.11
+    ports:
+      - '127.0.0.1:5432:5432'
+    environment:
+      POSTGRES_USER: bootstrap
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run python3 scripts/init-local-env.py}
+      CUSTOMER_DB_PASSWORD: ${CUSTOMER_DB_PASSWORD:?Missing customer password}
+      ASSESSMENT_DB_PASSWORD: ${ASSESSMENT_DB_PASSWORD:?Missing assessment password}
+      REPORTING_DB_PASSWORD: ${REPORTING_DB_PASSWORD:?Missing reporting password}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bootstrap -d postgres']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+volumes:
+  pgdata:
