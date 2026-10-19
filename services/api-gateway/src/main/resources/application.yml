@@ -1,0 +1,51 @@
+server:
+  address: ${SERVER_ADDRESS:127.0.0.1}
+  port: 8080
+spring:
+  application:
+    name: api-gateway
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER:http://localhost:8180/realms/credit-risk}
+          jwk-set-uri: ${OIDC_JWKS:http://localhost:8180/realms/credit-risk/protocol/openid-connect/certs}
+          audiences: credit-risk-api
+  cloud:
+    gateway:
+      server:
+        webflux:
+          httpclient:
+            connect-timeout: 3000
+            response-timeout: 5s
+          default-filters:
+            - RemoveRequestHeader=X-User-Id
+            - RemoveRequestHeader=X-User-Roles
+            - RemoveRequestHeader=X-Branch-Id
+          routes:
+            - id: customers
+              uri: ${CUSTOMER_SERVICE_URL:http://127.0.0.1:8081}
+              predicates:
+                - Path=/api/v1/customers,/api/v1/customers/**
+            - id: assessments
+              uri: ${ASSESSMENT_SERVICE_URL:http://127.0.0.1:8082}
+              predicates:
+                - Path=/api/v1/assessments,/api/v1/assessments/**
+            - id: reports
+              uri: ${REPORTING_SERVICE_URL:http://127.0.0.1:8083}
+              predicates:
+                - Path=/api/v1/reports,/api/v1/reports/**
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+logging:
+  structured:
+    format:
+      console: ecs
