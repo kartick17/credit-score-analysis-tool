@@ -1,4 +1,4 @@
-name: Foundation checks
+name: Build credit risk app
 on:
   push:
   pull_request:
@@ -14,15 +14,36 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Build all services and test real PostgreSQL
+      - name: Build all Java services
         run: ./mvnw -B clean verify
       - name: Create throwaway local database credentials
         run: python3 scripts/init-local-env.py
-      - name: Start isolated databases
+      - name: Start local data and identity
         run: ./scripts/db.sh up -d --wait
-      - name: Check all database boundaries
+      - name: Confirm database ownership
         run: python3 scripts/check-db-isolation.py
-      - name: Stop CI databases
+      - name: Prepare sample staff accounts
+        run: python3 scripts/identity.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.17.1'
+          cache: npm
+          cache-dependency-path: frontend/portal/package-lock.json
+      - name: Install portal dependencies
+        working-directory: frontend/portal
+        run: npm ci
+      - name: Install Chromium
+        working-directory: frontend/portal
+        run: npx playwright install --with-deps chromium
+      - name: Run staff sign-in and role flows
+        working-directory: frontend/portal
+        run: npm run test:identity
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: identity-browser-failure-evidence
+          path: frontend/portal/test-results/
+      - name: Stop local containers
         if: always()
         run: ./scripts/db.sh down
   frontend:
